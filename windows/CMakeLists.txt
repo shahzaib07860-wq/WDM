@@ -54,6 +54,10 @@ add_subdirectory("runner")
 
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.
+# MSVC 14.51+ turns the legacy WinRT experimental coroutine deprecation into
+# a hard error in some Flutter Windows plugins. Remove this once those plugins
+# migrate fully to the standard C++ coroutine headers.
+add_compile_definitions(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
 include(flutter/generated_plugins.cmake)
 
 
