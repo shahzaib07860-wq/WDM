@@ -29,8 +29,15 @@ jobs:
         shell: pwsh
         run: flutter pub get
 
+      - name: Prepare Windows runner profile
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\AppData\Local\Temp" | Out-Null
+
       - name: Build Windows release
         shell: pwsh
+        env:
+          CL: /D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
         run: flutter build windows --release
 
       - name: Install Inno Setup
