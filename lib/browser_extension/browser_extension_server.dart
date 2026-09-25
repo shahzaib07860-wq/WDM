@@ -96,7 +96,7 @@ class BrowserExtensionServer {
           bool responseClosed = false;
           try {
             addCORSHeaders(request);
-            final origin = request.headers.value(HttpHeaders.originHeader);
+            final origin = request.headers.value('origin');
             if (origin != null &&
                 !origin.startsWith('chrome-extension://') &&
                 !origin.startsWith('moz-extension://')) {
@@ -489,7 +489,7 @@ class BrowserExtensionServer {
   }
 
   static void addCORSHeaders(HttpRequest httpRequest) {
-    final origin = httpRequest.headers.value(HttpHeaders.originHeader);
+    final origin = httpRequest.headers.value('origin');
     if (origin != null &&
         (origin.startsWith('chrome-extension://') ||
             origin.startsWith('moz-extension://'))) {
