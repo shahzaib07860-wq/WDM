@@ -12,15 +12,14 @@ class DownloadQueueList extends StatelessWidget {
   Widget build(BuildContext context) {
     final gridTheme =
         Provider.of<ThemeProvider>(context).activeTheme.downloadGridTheme;
-    final size = MediaQuery.of(context).size;
     return Material(
       type: MaterialType.transparency,
-      child: Container(
-        height: size.height - topMenuHeight,
-        width: resolveWindowWidth(size),
-        color: gridTheme.backgroundColor,
-        child: Column(
-          children: buildQueues(context),
+      child: SizedBox.expand(
+        child: Container(
+          color: gridTheme.backgroundColor,
+          child: Column(
+            children: buildQueues(context),
+          ),
         ),
       ),
     );

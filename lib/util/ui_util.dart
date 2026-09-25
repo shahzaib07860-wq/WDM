@@ -6,13 +6,13 @@ void safePop(BuildContext context) {
   }
 }
 
-const double topMenuHeight = 62;
-
-double minimizedSideMenuWidth = 110;
+const double legacyMenuBarHeight = 35;
+const double topMenuHeight = 64;
+const double legacyStatusBarHeight = 31;
+const double minimizedSideMenuWidth = 174;
 
 double resolveWindowWidth(Size size) {
   return size.width - minimizedSideMenuWidth;
 }
 
-bool minimizedSideMenu(Size size) => true;
-
+bool minimizedSideMenu(Size size) => false;

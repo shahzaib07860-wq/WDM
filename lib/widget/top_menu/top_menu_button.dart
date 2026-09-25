@@ -1,6 +1,7 @@
-import 'package:wdm/provider/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:wdm/provider/theme_provider.dart';
+import 'package:wdm/widget/legacy/legacy_palette.dart';
 
 class TopMenuButton extends StatefulWidget {
   final String title;
@@ -14,7 +15,7 @@ class TopMenuButton extends StatefulWidget {
     super.key,
     required this.title,
     required this.icon,
-    this.onHoverColor = Colors.blueGrey,
+    this.onHoverColor = Colors.transparent,
     required this.onTap,
     this.fontSize = 13,
     required this.isEnabled,
@@ -25,71 +26,64 @@ class TopMenuButton extends StatefulWidget {
 }
 
 class _TopMenuButtonState extends State<TopMenuButton> {
-  bool _isHovered = false;
+  bool hovered = false;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Provider.of<ThemeProvider>(context).activeTheme;
+    final light = Provider.of<ThemeProvider>(context).activeTheme.isLight;
+    final width = (widget.title.length * 6.4 + 20).clamp(56.0, 82.0);
     return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: Material(
-        color: Colors.transparent,
-        child: Ink(
-          width: 100,
-          height: 100,
+      onEnter: (_) => setState(() => hovered = true),
+      onExit: (_) => setState(() => hovered = false),
+      child: InkWell(
+        onTap: widget.isEnabled ? widget.onTap : null,
+        hoverColor: Colors.transparent,
+        child: Container(
+          width: width,
+          height: 64,
           decoration: BoxDecoration(
-            color: _isHovered
-                ? (widget.isEnabled
-                    ? widget.onHoverColor
-                    : theme.topMenuTheme.disabledHoverColor)
+            color: hovered && widget.isEnabled
+                ? LegacyPalette.hover(light)
                 : Colors.transparent,
-            borderRadius: BorderRadius.circular(3),
+            border: Border(
+              bottom: BorderSide(
+                width: 2,
+                color: hovered && widget.isEnabled
+                    ? LegacyPalette.accent(light)
+                    : Colors.transparent,
+              ),
+            ),
           ),
-          child: InkWell(
-            onTap: widget.onTap,
-            borderRadius: BorderRadius.circular(8),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 100),
-                  curve: Curves.easeOut,
-                  top: _isHovered ? 0 : 18,
+          padding: const EdgeInsets.fromLTRB(5, 8, 5, 5),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                height: 23,
+                child: IconTheme(
+                  data: IconThemeData(
+                    size: 21,
+                    color: widget.isEnabled
+                        ? LegacyPalette.text2(light)
+                        : LegacyPalette.text3(light).withValues(alpha: .45),
+                  ),
                   child: widget.icon,
                 ),
-                AnimatedOpacity(
-                  duration: const Duration(milliseconds: 100),
-                  opacity: _isHovered ? 1.0 : 0.0,
-                  child: AnimatedSlide(
-                    duration: const Duration(milliseconds: 100),
-                    offset: _isHovered ? Offset.zero : const Offset(0, 0.3),
-                    child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: SizedBox(
-                          width: 100,
-                          child: Text(
-                            widget.title,
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: widget.fontSize,
-                              fontWeight: theme.fontWeight,
-                              color: widget.isEnabled
-                                  ? theme.topMenuTheme.buttonTextColor
-                                  : theme.topMenuTheme.disabledButtonTextColor,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                widget.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: widget.fontSize,
+                  height: 1,
+                  color: widget.isEnabled
+                      ? LegacyPalette.text(light)
+                      : LegacyPalette.text3(light).withValues(alpha: .45),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

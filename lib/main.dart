@@ -26,6 +26,9 @@ import 'package:wdm/widget/base/app_exit_dialog.dart';
 import 'package:wdm/widget/base/global_context.dart';
 import 'package:wdm/widget/download/download_grid.dart';
 import 'package:wdm/widget/loader/file_info_loader.dart';
+import 'package:wdm/widget/legacy/legacy_menu_bar.dart';
+import 'package:wdm/widget/legacy/legacy_status_bar.dart';
+import 'package:wdm/widget/legacy/legacy_palette.dart';
 import 'package:wdm/widget/queue/download_queue_list.dart';
 import 'package:wdm/widget/side_menu/side_menu.dart';
 import 'package:wdm/widget/top_menu/download_queue_top_menu.dart';
@@ -297,44 +300,35 @@ class _MyHomePageState extends State<MyHomePage>
   @override
   Widget build(BuildContext context) {
     final queueProvider = Provider.of<QueueProvider>(context);
+    final light = Provider.of<ThemeProvider>(context).activeTheme.isLight;
     return LoaderOverlay(
       overlayWidgetBuilder: (progress) => FileInfoLoader(
         onCancelPressed: () => DownloadAdditionUiUtil.cancelRequest(context),
       ),
       child: Scaffold(
-        backgroundColor: Colors.black26,
+        backgroundColor: LegacyPalette.bg0(light),
         body: Column(
           children: [
+            const LegacyMenuBar(),
+            const TopMenu(),
             Expanded(
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  SideMenu(),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (queueProvider.queueTopMenu)
-                        QueueTopMenu()
-                      else if (queueProvider.downloadQueueTopMenu)
-                        DownloadQueueTopMenu()
-                      else
-                        TopMenu(),
-                      if (queueProvider.selectedQueueId != null)
-                        DownloadGrid()
-                      else if (queueProvider.queueTabSelected)
-                        DownloadQueueList()
-                      else
-                        DownloadGrid(),
-                    ],
+                  const SideMenu(),
+                  Expanded(
+                    child: queueProvider.selectedQueueId != null
+                        ? DownloadGrid()
+                        : queueProvider.queueTabSelected
+                            ? DownloadQueueList()
+                            : DownloadGrid(),
                   ),
                 ],
               ),
             ),
+            const LegacyStatusBar(),
           ],
         ),
       ),
     );
-  }
-}
+  }}

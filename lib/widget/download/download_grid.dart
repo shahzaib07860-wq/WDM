@@ -13,6 +13,7 @@ import 'package:wdm/util/ui_util.dart';
 import 'package:wdm/widget/download/add_url_dialog.dart';
 import 'package:wdm/widget/download/download_info_dialog.dart';
 import 'package:wdm/widget/download/download_progress_dialog.dart';
+import 'package:wdm/widget/legacy/legacy_palette.dart';
 import 'package:wdm/widget/other/automatic_url_update_dialog.dart';
 import 'package:brisk_download_engine/brisk_download_engine.dart';
 import 'package:flutter/material.dart';
@@ -51,11 +52,14 @@ class _DownloadGridState extends State<DownloadGrid> {
   }
 
   void initColumns(BuildContext context) {
+    final fullWidth = MediaQuery.of(context).size.width;
+    final showTime = fullWidth >= 1080;
+    final showDate = fullWidth >= 1240;
     columns = [
       PlutoColumn(
         readOnly: true,
         hide: true,
-        width: 80,
+        width: 70,
         title: 'Id',
         field: 'id',
         type: PlutoColumnType.number(),
@@ -63,104 +67,78 @@ class _DownloadGridState extends State<DownloadGrid> {
       PlutoColumn(
         readOnly: true,
         hide: true,
-        width: 80,
+        width: 70,
         title: 'Uid',
         field: 'uid',
         type: PlutoColumnType.text(),
       ),
       PlutoColumn(
         enableRowChecked: selectionMode,
-        width: 400,
-        title: loc.fileName,
+        width: fullWidth < 1080 ? 390 : 430,
+        title: 'File name',
         field: 'file_name',
         type: PlutoColumnType.text(),
         renderer: (ctx) => PlutoGridUtil.fileNameColumnRenderer(ctx, theme),
       ),
       PlutoColumn(
-          readOnly: true,
-          width: 90,
-          title: loc.size,
-          field: 'size',
-          type: PlutoColumnType.text(),
-          renderer: (rendererContext) {
-            return Text(
-              rendererContext.row.cells[rendererContext.column.field]!.value
-                  .toString(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: theme.downloadGridTheme.rowTextColor,
-                fontWeight: theme.fontWeight,
-              ),
-            );
-          }),
-      PlutoColumn(
         readOnly: true,
-        width: 100,
-        title: loc.progress,
-        field: 'progress',
+        width: 80,
+        title: 'Size',
+        field: 'size',
         type: PlutoColumnType.text(),
-        renderer: (rendererContext) {
-          return Text(
-            rendererContext.row.cells[rendererContext.column.field]!.value
-                .toString(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: theme.downloadGridTheme.rowTextColor,
-              fontWeight: theme.fontWeight,
-            ),
-          );
-        },
+        renderer: rowText,
       ),
       PlutoColumn(
         readOnly: true,
-        width: 130,
-        title: loc.status,
-        field: "status",
+        hide: true,
+        width: 90,
+        title: 'Progress',
+        field: 'progress',
         type: PlutoColumnType.text(),
-        renderer: (rendererContext) {
-          return Text(
-            rendererContext.row.cells[rendererContext.column.field]!.value
-                .toString(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: theme.downloadGridTheme.rowTextColor,
-              fontWeight: theme.fontWeight,
-            ),
-          );
-        },
+        renderer: rowText,
+      ),
+      PlutoColumn(
+        readOnly: true,
+        width: 146,
+        title: 'Status',
+        field: 'status',
+        type: PlutoColumnType.text(),
+        renderer: (ctx) => _statusBadge(
+          ctx.row.cells[ctx.column.field]!.value.toString(),
+        ),
       ),
       PlutoColumn(
         readOnly: true,
         enableSorting: false,
-        width: 125,
-        title: loc.speed,
+        width: 94,
+        title: 'Speed',
         field: 'transfer_rate',
         type: PlutoColumnType.text(),
         renderer: rowText,
       ),
       PlutoColumn(
         readOnly: true,
-        width: 120,
-        title: loc.timeLeft,
+        hide: !showTime,
+        width: 94,
+        title: 'Time left',
         field: 'time_left',
         type: PlutoColumnType.text(),
         renderer: rowText,
       ),
       PlutoColumn(
         readOnly: true,
+        hide: !showDate,
         width: 105,
-        title: loc.startDate,
+        title: 'Last try',
         field: 'start_date',
         type: PlutoColumnType.date(),
         renderer: rowText,
       ),
       PlutoColumn(
         readOnly: true,
+        hide: true,
         width: 115,
-        title: loc.finishDate,
+        title: 'Finish date',
         field: 'finish_date',
         type: PlutoColumnType.date(),
         renderer: rowText,
@@ -173,7 +151,7 @@ class _DownloadGridState extends State<DownloadGrid> {
         field: 'file_type',
         type: PlutoColumnType.text(),
         renderer: rowText,
-      )
+      ),
     ];
   }
 
@@ -204,66 +182,312 @@ class _DownloadGridState extends State<DownloadGrid> {
   @override
   Widget build(BuildContext context) {
     provider = Provider.of<DownloadRequestProvider>(context, listen: false);
-    final downloadGridTheme =
-        Provider.of<ThemeProvider>(context).activeTheme.downloadGridTheme;
     plutoProvider = Provider.of<PlutoGridCheckRowProvider>(
       context,
       listen: false,
     );
     queueProvider = Provider.of<QueueProvider>(context);
-    final size = MediaQuery.of(context).size;
     theme = Provider.of<ThemeProvider>(context).activeTheme;
     searchBarNotifier = Provider.of<SearchBarNotifierProvider>(context);
+    final light = theme.isLight;
+    final legacyGridTheme = DownloadGridTheme(
+      backgroundColor: LegacyPalette.bg1(light),
+      activeRowColor: LegacyPalette.hover(light),
+      checkedRowColor: LegacyPalette.selected(light),
+      borderColor: LegacyPalette.rowBorder(light),
+      rowColor: LegacyPalette.bg1(light),
+      rowTextColor: LegacyPalette.text(light),
+      titleColumnTextColor: LegacyPalette.text2(light),
+    );
+
     return Material(
       type: MaterialType.transparency,
-      child: Container(
-        height: size.height - topMenuHeight,
-        width: resolveWindowWidth(size),
-        decoration: const BoxDecoration(color: Colors.black26),
-        child: Stack(
-          children: [
-            PlutoGrid(
-              key: ValueKey('${queueProvider?.selectedQueueId ?? 'download-grid'}-$selectionMode'),
-              mode: PlutoGridMode.selectWithOneTap,
-              configuration: PlutoGridUtil.config(downloadGridTheme),
-              columns: columns,
-              rows: [],
-              onSelected: (event) => PlutoGridUtil.handleRowSelection(
-                event,
-                PlutoGridUtil.plutoStateManager!,
-                plutoProvider,
-              ),
-              onRowChecked: (row) => plutoProvider.notifyListeners(),
-              onRowDoubleTap: onRowDoubleTap,
-              onLoaded: (event) => onLoaded(event, provider!, queueProvider!),
-              onRowSecondaryTap: (event) =>
-                  showSecondaryTapMenu(context, event),
-            ),
-            if (searchBarNotifier.showSearchBar) showSearchbar(),
-            Positioned(
-              top: 12,
-              right: 12,
-              child: Tooltip(
-                message: selectionMode ? 'Hide selection boxes' : 'Show selection boxes',
-                child: Material(
-                  color: theme.alertDialogTheme.backgroundColor,
-                  borderRadius: BorderRadius.circular(8),
-                  child: TextButton.icon(
-                    onPressed: () => setState(() {
-                      selectionMode = !selectionMode;
-                      initColumns(context);
-                    }),
-                    icon: Icon(selectionMode ? Icons.check_box : Icons.check_box_outline_blank, size: 18),
-                    label: Text(selectionMode ? 'Done' : 'Select', style: const TextStyle(fontSize: 14)),
-                    style: TextButton.styleFrom(foregroundColor: theme.textColor),
-                  ),
+      child: SizedBox.expand(
+        child: Container(
+          color: LegacyPalette.bg1(light),
+          child: Column(
+            children: [
+              _legacyToolsBar(light),
+              _queueBar(light),
+              Expanded(
+                child: Stack(
+                  children: [
+                    PlutoGrid(
+                      key: ValueKey(
+                        '${queueProvider?.selectedQueueId ?? 'download-grid'}-$selectionMode',
+                      ),
+                      mode: PlutoGridMode.selectWithOneTap,
+                      configuration: PlutoGridUtil.config(legacyGridTheme),
+                      columns: columns,
+                      rows: [],
+                      onSelected: (event) => PlutoGridUtil.handleRowSelection(
+                        event,
+                        PlutoGridUtil.plutoStateManager!,
+                        plutoProvider,
+                      ),
+                      onRowChecked: (row) => plutoProvider.notifyListeners(),
+                      onRowDoubleTap: onRowDoubleTap,
+                      onLoaded: (event) =>
+                          onLoaded(event, provider!, queueProvider!),
+                      onRowSecondaryTap: (event) =>
+                          showSecondaryTapMenu(context, event),
+                    ),
+                    if (HiveUtil.instance.downloadItemsBox.values.isEmpty)
+                      IgnorePointer(
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'No downloads yet',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: LegacyPalette.text(light),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Click "Add URL" or use the browser extension',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: LegacyPalette.text3(light),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
-            ),
-          ],
+              _detailsBar(light),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Widget _legacyToolsBar(bool light) {
+    return Container(
+      height: 45,
+      padding: const EdgeInsets.symmetric(horizontal: 9),
+      decoration: BoxDecoration(
+        color: LegacyPalette.bg1(light),
+        border: Border(
+          bottom: BorderSide(color: LegacyPalette.border(light)),
+        ),
+      ),
+      child: Row(
+        children: [
+          _smallTool('Batch URLs', Icons.playlist_add_rounded, light, () {
+            _notPorted('Batch URL entry');
+          }),
+          _smallTool('Grab site', Icons.travel_explore_rounded, light, () {
+            _notPorted('Site grabber');
+          }),
+          _smallTool('ZIP preview', Icons.folder_zip_outlined, light, () {
+            _notPorted('ZIP preview');
+          }),
+          _smallTool('Clipboard', Icons.content_paste_rounded, light, () {
+            _notPorted('Clipboard monitor');
+          }),
+          _smallTool(
+            selectionMode ? 'Done' : 'Select files',
+            selectionMode
+                ? Icons.check_box_rounded
+                : Icons.check_box_outline_blank_rounded,
+            light,
+            () => setState(() {
+              selectionMode = !selectionMode;
+              initColumns(context);
+            }),
+          ),
+          const Spacer(),
+          SizedBox(
+            width: 140,
+            height: 30,
+            child: TextField(
+              controller: _searchController,
+              style: TextStyle(
+                fontSize: 13,
+                color: LegacyPalette.text(light),
+              ),
+              decoration: InputDecoration(
+                hintText: 'Search downloads',
+                hintStyle: TextStyle(
+                  fontSize: 13,
+                  color: LegacyPalette.text3(light),
+                ),
+                prefixIcon: Icon(
+                  Icons.search_rounded,
+                  size: 17,
+                  color: LegacyPalette.text3(light),
+                ),
+                prefixIconConstraints:
+                    const BoxConstraints(minWidth: 30, minHeight: 30),
+                filled: true,
+                fillColor: LegacyPalette.bg0(light),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(3),
+                  borderSide: BorderSide(color: LegacyPalette.border(light)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(3),
+                  borderSide: BorderSide(color: LegacyPalette.accent(light)),
+                ),
+              ),
+              onChanged: PlutoGridUtil.addSearchFilter,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _smallTool(
+    String label,
+    IconData icon,
+    bool light,
+    VoidCallback onTap,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 4),
+      child: TextButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, size: 16),
+        label: Text(label, style: const TextStyle(fontSize: 13)),
+        style: TextButton.styleFrom(
+          foregroundColor: LegacyPalette.text2(light),
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+          minimumSize: const Size(0, 30),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _queueBar(bool light) {
+    return Container(
+      height: 33,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: LegacyPalette.bg2(light),
+        border: Border(
+          bottom: BorderSide(color: LegacyPalette.border(light)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.check_circle_outline_rounded,
+            size: 15,
+            color: LegacyPalette.accent(light),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            'Queue ready',
+            style: TextStyle(
+              fontSize: 13,
+              color: LegacyPalette.text2(light),
+            ),
+          ),
+          const Spacer(),
+          Text(
+            '↑ Move up',
+            style: TextStyle(fontSize: 12, color: LegacyPalette.text3(light)),
+          ),
+          const SizedBox(width: 14),
+          Text(
+            '↓ Move down',
+            style: TextStyle(fontSize: 12, color: LegacyPalette.text3(light)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailsBar(bool light) {
+    final selectedCount = PlutoGridUtil.selectedRowIds.length;
+    return Container(
+      constraints: const BoxConstraints(minHeight: 36, maxHeight: 115),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: LegacyPalette.bg0(light),
+        border: Border(
+          top: BorderSide(color: LegacyPalette.border(light)),
+        ),
+      ),
+      child: Text(
+        selectedCount == 0
+            ? 'Select a download for its location and scan result.'
+            : '$selectedCount download${selectedCount == 1 ? '' : 's'} selected.',
+        style: TextStyle(
+          fontSize: 13,
+          height: 1.5,
+          color: LegacyPalette.text2(light),
+        ),
+      ),
+    );
+  }
+
+  Widget _statusBadge(String status) {
+    final light = theme.isLight;
+    final lower = status.toLowerCase();
+    final isError = lower.contains('fail') || lower.contains('error');
+    final isDone =
+        status == DownloadStatus.assembleComplete || lower.contains('complete');
+    final isActive = lower.contains('download') ||
+        lower.contains('connect') ||
+        lower.contains('validat') ||
+        lower.contains('assembl');
+    final color = isError
+        ? LegacyPalette.error(light)
+        : isActive
+            ? LegacyPalette.accent(light)
+            : LegacyPalette.text2(light);
+    final background = isError
+        ? LegacyPalette.error(light).withOpacity(.10)
+        : isActive
+            ? LegacyPalette.accentBg(light)
+            : LegacyPalette.bg3(light);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+        decoration: BoxDecoration(
+          color: isDone ? LegacyPalette.bg3(light) : background,
+          borderRadius: BorderRadius.circular(3),
+        ),
+        child: Text(
+          status.isEmpty ? 'Ready' : status,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 12,
+            color: color,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _notPorted(String feature) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('$feature is visible in the 1.4.1 layout; its 2.0 engine port is not connected yet.'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
   }
 
   Widget showSearchbar() {
