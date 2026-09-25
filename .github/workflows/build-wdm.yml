@@ -1,0 +1,63 @@
+name: Build WDM Windows
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Enable Windows desktop
+        shell: pwsh
+        run: flutter config --enable-windows-desktop
+
+      - name: Get dependencies
+        shell: pwsh
+        run: flutter pub get
+
+      - name: Build Windows release
+        shell: pwsh
+        run: flutter build windows --release
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Build WDM installer
+        shell: pwsh
+        run: |
+          $compiler = @(
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+            "${env:ProgramFiles}\Inno Setup 6\ISCC.exe",
+            "${env:LOCALAPPDATA}\Programs\Inno Setup 6\ISCC.exe"
+          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $compiler) { throw "Inno Setup compiler not found." }
+          .\scripts\build-windows-installer.ps1 -InnoCompiler $compiler
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: WDM-2.0.1-Windows-Installer
+          path: dist/WDM_2.0_Alpha_Setup.exe
+          if-no-files-found: error
+
+      - name: Upload portable build
+        uses: actions/upload-artifact@v4
+        with:
+          name: WDM-2.0.1-Windows-Portable
+          path: build/windows/x64/runner/Release/
+          if-no-files-found: error
