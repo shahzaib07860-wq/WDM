@@ -1,0 +1,24 @@
+PASS Health accepts WDM 2
+PASS Health rejects a different application
+PASS Offline desktop leaves browser download untouched
+PASS Capture disabled leaves browser download untouched
+PASS Desktop rejection resumes the browser download
+PASS Positive acknowledgement cancels and erases browser download
+PASS Legacy captured-only acknowledgement preserves browser download
+PASS Custom port applies to health and download endpoints
+PASS Direct-file handoff includes cookies, Authorization and Referer
+PASS HLS handoff preserves Authorization
+PASS HLS handoff preserves cookies
+PASS Extensionless HLS detected by MIME type; secrets hidden from listing
+PASS Media list deduplicates repeated responses
+PASS Media discovery ignores errors and TS fragments
+PASS Media list is limited to 100 entries per tab
+PASS Navigation clears stale media
+PASS Blob URLs return actionable guidance
+PASS Explicit Open WDM message uses its endpoint
+PASS Popup row selection boxes are hidden initially
+PASS Popup batch selection controls are hidden initially
+PASS Popup selection button changes state and clears selection
+PASS Page scan finds direct media, downloadable links and blob player
+PASS Finishing selection hides rows and batch controls again
+{"passed":23,"failed":0}

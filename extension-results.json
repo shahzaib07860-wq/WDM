@@ -1,0 +1,122 @@
+{
+  "method": "Actual extension JavaScript executed with Chrome API fixtures and JSDOM 26.1.0; no live browser or Flutter desktop",
+  "passed": 23,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Health accepts WDM 2",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Health rejects a different application",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Offline desktop leaves browser download untouched",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Capture disabled leaves browser download untouched",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Desktop rejection resumes the browser download",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Positive acknowledgement cancels and erases browser download",
+      "status": "PASS",
+      "detail": "Confirms extension behavior only; desktop must acknowledge only after durable acceptance."
+    },
+    {
+      "name": "Legacy captured-only acknowledgement preserves browser download",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Custom port applies to health and download endpoints",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Direct-file handoff includes cookies, Authorization and Referer",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "HLS handoff preserves Authorization",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "HLS handoff preserves cookies",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Extensionless HLS detected by MIME type; secrets hidden from listing",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Media list deduplicates repeated responses",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Media discovery ignores errors and TS fragments",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Media list is limited to 100 entries per tab",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Navigation clears stale media",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Blob URLs return actionable guidance",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Explicit Open WDM message uses its endpoint",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Popup row selection boxes are hidden initially",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Popup batch selection controls are hidden initially",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Popup selection button changes state and clears selection",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Page scan finds direct media, downloadable links and blob player",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Finishing selection hides rows and batch controls again",
+      "status": "PASS",
+      "detail": ""
+    }
+  ]
+}
