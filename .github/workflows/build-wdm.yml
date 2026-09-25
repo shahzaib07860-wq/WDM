@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - main
-      - wdm-141-ui
 
 permissions:
   contents: read
