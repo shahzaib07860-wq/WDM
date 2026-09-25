@@ -1,0 +1,25 @@
+import 'package:wdm/widget/setting/page/connection/connection_retry_group.dart';
+import 'package:wdm/widget/setting/page/connection/download_engine_group.dart';
+import 'package:wdm/widget/setting/page/connection/proxy_group.dart';
+import 'package:flutter/material.dart';
+
+class ConnectionSettingsPage extends StatelessWidget {
+  const ConnectionSettingsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          ConnectionRetryGroup(),
+          const SizedBox(height: 15),
+          DownloadEngineGroup(),
+          const SizedBox(height: 15),
+          ProxyGroup(),
+        ],
+      ),
+    );
+  }
+}

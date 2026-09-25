@@ -1,0 +1,55 @@
+import 'package:wdm/l10n/app_localizations.dart';
+import 'package:wdm/provider/theme_provider.dart';
+import 'package:wdm/setting/rule/file_condition.dart';
+import 'package:wdm/setting/rule/file_save_path_rule.dart';
+import 'package:wdm/setting/rule/rule_value_type.dart';
+import 'package:wdm/setting/settings_cache.dart';
+import 'package:wdm/widget/base/default_tooltip.dart';
+
+import 'package:wdm/widget/setting/base/external_link_setting.dart';
+import 'package:wdm/widget/setting/base/rule/file_save_path_rule_editor_dialog.dart';
+import 'package:wdm/widget/setting/base/settings_group.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+class FileRulesGroup extends StatelessWidget {
+  const FileRulesGroup({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final loc = AppLocalizations.of(context)!;
+    final theme = Provider.of<ThemeProvider>(context).activeTheme;
+    return SettingsGroup(
+      title: loc.settings_rules,
+      children: [
+        ExternalLinkSetting(
+          title: loc.settings_rules_fileSavePathRules,
+          titleWidth: resolveWidth(size),
+          linkText: loc.settings_rules_edit,
+          customIcon: Icon(
+            Icons.edit_note_rounded,
+            color: theme.widgetTheme.iconColor,
+          ),
+          onLinkPressed: () => showDialog(
+            builder: (context) => FileSavePathRuleEditorDialog(),
+            barrierDismissible: false,
+            context: context,
+          ),
+          tooltipMessage: loc.settings_rules_fileSavePathRules_tooltip,
+        )
+      ],
+    );
+  }
+
+  double resolveWidth(Size size) {
+    double width = 140;
+    if (size.width < 688) {
+      width = 120;
+    }
+    if (size.width < 608) {
+      width = 90;
+    }
+    return width;
+  }
+}
