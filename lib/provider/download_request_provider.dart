@@ -103,6 +103,10 @@ class DownloadRequestProvider with ChangeNotifier {
         .toInt();
   }
 
+  void refreshRuntimeSettings() {
+    _rebalanceSpeedLimits();
+  }
+
   void _rebalanceSpeedLimits() {
     final active = _activeDownloads();
     if (active.isEmpty) return;
