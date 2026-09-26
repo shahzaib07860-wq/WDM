@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:brisk_download_engine/brisk_download_engine.dart';
 import 'package:wdm/util/download_engine_util.dart';
 import 'package:wdm/setting/settings_cache.dart';
 
@@ -11,6 +12,7 @@ void main() {
     SettingsCache.connectionsNumber = 8;
     SettingsCache.m3u8ConnectionNumber = 8;
     SettingsCache.loggerEnabled = false;
+    SettingsCache.httpClientType = ClientType.dartHttp;
     SettingsCache.proxyEnabled = false;
     SettingsCache.proxyAddress = '';
     SettingsCache.proxyPort = '';
