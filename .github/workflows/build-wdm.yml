@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - stabilize-optimize
 
 permissions:
   contents: read
@@ -33,6 +34,18 @@ jobs:
       - name: Get dependencies
         shell: pwsh
         run: flutter pub get
+
+      - name: Test queue scheduler policy
+        shell: pwsh
+        run: dart tests/queue-policy-test.dart
+
+      - name: Test WDM tools
+        shell: pwsh
+        run: flutter test test/legacy_tools_test.dart
+
+      - name: Test browser extension
+        shell: pwsh
+        run: node test-extension.cjs
 
       - name: Prepare Windows runner profile
         shell: pwsh

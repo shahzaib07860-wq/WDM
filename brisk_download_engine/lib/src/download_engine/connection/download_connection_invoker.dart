@@ -154,6 +154,9 @@ class DownloadConnectionInvoker {
       case DownloadCommand.resetConnection:
         connection.resetConnection();
         break;
+      case DownloadCommand.updateSettings:
+        connection.settings = data.settings;
+        break;
       default:
         break;
     }
@@ -244,6 +247,9 @@ class DownloadConnectionInvoker {
         }
         connection.previousBufferEndByte = 0;
         connection.resetConnection();
+        break;
+      case DownloadCommand.updateSettings:
+        connection.settings = data.settings;
         break;
     }
   }

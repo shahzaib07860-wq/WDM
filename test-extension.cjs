@@ -44,7 +44,8 @@ const message = (msg, sender = {tab: {id: 7, url: 'https://example.test/page'}})
   assert.deepEqual(actions, ['pause', 'resume']);
   assert.equal((await message({type: 'open'})).ok, false);
   const manifest = JSON.parse(fs.readFileSync('extension/manifest.json'));
-  assert(manifest.host_permissions.some(x => x.includes(':3021/')));
+  assert(manifest.host_permissions.includes('http://127.0.0.1/*'));
+  assert(manifest.host_permissions.includes('http://localhost/*'));
   assert.equal(manifest.version, '2.0.1');
   console.log('PASS: health, HLS detection, file message, blob guidance, browser fallback, extension port');
 })().catch(error => {console.error(error); process.exitCode = 1;});

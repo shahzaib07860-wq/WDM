@@ -137,9 +137,11 @@ class M3U8DownloadEngine {
     if (engineChannel.paused) return;
     final m3u8 = _m3u8Map[uid];
     if (m3u8 == null) return;
-    final segmentToAssign = m3u8.segments
+    final availableSegments = m3u8.segments
         .where((segment) => segment.segmentStatus == SegmentStatus.initial)
-        .first;
+        .toList();
+    if (availableSegments.isEmpty) return;
+    final segmentToAssign = availableSegments.first;
     segmentToAssign.segmentStatus = SegmentStatus.inUse;
     final conn = engineChannel.connectionChannels[progress.connectionNumber]!;
     segmentToAssign.connectionNumber = conn.connectionNumber;
@@ -317,7 +319,7 @@ class M3U8DownloadEngine {
       ..totalDownloadProgress = 1
       ..assembleProgress = 0
       ..downloadProgress = 1
-      ..status = DownloadStatus.downloading;
+      ..status = DownloadStatus.assembling;
     engineChannel.sendMessage(progress);
     engineChannel.assembleRequested = true;
     final logger = engineChannel.logger;
@@ -545,7 +547,7 @@ class M3U8DownloadEngine {
       final segment = segments[i];
       segment.connectionNumber = i;
       m3u8.segments.where((s) => s == segment).first
-        ..connectionNumber = 1
+        ..connectionNumber = i
         ..segmentStatus = SegmentStatus.inUse;
       await _spawnSingleDownloadIsolate(data.clone(), i, segment);
     }

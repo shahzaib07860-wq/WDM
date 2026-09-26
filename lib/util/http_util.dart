@@ -121,10 +121,8 @@ Future<String> fetchStringContent(
   Map<String, String>? headers,
 }) async {
   final client = await HttpClientBuilder.buildClient(clientSettings);
-  final request = http.Request('GET', Uri.parse(url));
-  request.headers.addAll(userAgentHeader);
-  request.headers.addAll(headers ?? {});
-  final response = await client.get(Uri.parse(url), headers: headers);
+  final mergedHeaders = <String, String>{...userAgentHeader, ...?headers};
+  final response = await client.get(Uri.parse(url), headers: mergedHeaders);
   if (response.statusCode == 200) {
     return response.body;
   } else {
@@ -189,17 +187,22 @@ Future<FileInfo?> sendFileInfoRequest(
         completer.complete(data);
       } finally {
         if (useGet) {
-          client.close();
+          streamedResponse.stream.drain<void>().catchError((_) {});
         }
+        client.close();
       }
     }).onError((e) {
       print(e);
-      completer.completeError(
-        Exception("Could not retrieve result from the given URL"),
-      );
+      client.close();
+      if (!completer.isCompleted) {
+        completer.completeError(
+          Exception("Could not retrieve result from the given URL"),
+        );
+      }
     });
   } catch (e) {
-    completer.completeError(e);
+    client.close();
+    if (!completer.isCompleted) completer.completeError(e);
   }
   return completer.future;
 }

@@ -11,4 +11,5 @@ enum DownloadCommand {
   terminateAndEnginePanic,
   terminateWithNetworkError,
   resetConnection,
+  updateSettings,
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:wdm/browser_extension/browser_extension_server.dart';
 import 'package:wdm/constants/file_type.dart';
 import 'package:wdm/l10n/app_localizations.dart';
@@ -9,6 +11,7 @@ import 'package:wdm/provider/search_bar_notifier_provider.dart';
 import 'package:wdm/provider/theme_provider.dart';
 import 'package:wdm/theme/application_theme.dart';
 import 'package:wdm/util/file_util.dart';
+import 'package:wdm/util/download_addition_ui_util.dart';
 import 'package:wdm/util/ui_util.dart';
 import 'package:wdm/widget/download/add_url_dialog.dart';
 import 'package:wdm/widget/download/download_info_dialog.dart';
@@ -19,6 +22,8 @@ import 'package:brisk_download_engine/brisk_download_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:pluto_grid/pluto_grid.dart';
 import 'package:provider/provider.dart';
+import 'package:clipboard/clipboard.dart';
+import 'package:wdm/widget/legacy/legacy_tools_dialogs.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:wdm/db/hive_util.dart';
 
@@ -178,6 +183,18 @@ class _DownloadGridState extends State<DownloadGrid> {
 
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
+  Timer? _clipboardTimer;
+  bool _clipboardMonitoring = false;
+  String _lastClipboard = '';
+  bool _clipboardHandling = false;
+
+  @override
+  void dispose() {
+    _clipboardTimer?.cancel();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -281,18 +298,17 @@ class _DownloadGridState extends State<DownloadGrid> {
       ),
       child: Row(
         children: [
-          _smallTool('Batch URLs', Icons.playlist_add_rounded, light, () {
-            _notPorted('Batch URL entry');
-          }),
-          _smallTool('Grab site', Icons.travel_explore_rounded, light, () {
-            _notPorted('Site grabber');
-          }),
-          _smallTool('ZIP preview', Icons.folder_zip_outlined, light, () {
-            _notPorted('ZIP preview');
-          }),
-          _smallTool('Clipboard', Icons.content_paste_rounded, light, () {
-            _notPorted('Clipboard monitor');
-          }),
+          _smallTool('Batch URLs', Icons.playlist_add_rounded, light, _openBatchUrls),
+          _smallTool('Grab site', Icons.travel_explore_rounded, light, _openSiteGrabber),
+          _smallTool('ZIP preview', Icons.folder_zip_outlined, light, _openZipPreview),
+          _smallTool(
+            _clipboardMonitoring ? 'Clipboard on' : 'Clipboard',
+            _clipboardMonitoring
+                ? Icons.content_paste_go_rounded
+                : Icons.content_paste_rounded,
+            light,
+            _toggleClipboardMonitor,
+          ),
           _smallTool(
             selectionMode ? 'Done' : 'Select files',
             selectionMode
@@ -398,14 +414,27 @@ class _DownloadGridState extends State<DownloadGrid> {
             ),
           ),
           const Spacer(),
-          Text(
-            '↑ Move up',
-            style: TextStyle(fontSize: 12, color: LegacyPalette.text3(light)),
+          TextButton.icon(
+            onPressed: queueProvider?.selectedQueueId == null
+                ? null
+                : () => _moveSelected(-1),
+            icon: const Icon(Icons.arrow_upward_rounded, size: 14),
+            label: const Text('Move up'),
+            style: TextButton.styleFrom(
+              foregroundColor: LegacyPalette.text3(light),
+              textStyle: const TextStyle(fontSize: 12),
+            ),
           ),
-          const SizedBox(width: 14),
-          Text(
-            '↓ Move down',
-            style: TextStyle(fontSize: 12, color: LegacyPalette.text3(light)),
+          TextButton.icon(
+            onPressed: queueProvider?.selectedQueueId == null
+                ? null
+                : () => _moveSelected(1),
+            icon: const Icon(Icons.arrow_downward_rounded, size: 14),
+            label: const Text('Move down'),
+            style: TextButton.styleFrom(
+              foregroundColor: LegacyPalette.text3(light),
+              textStyle: const TextStyle(fontSize: 12),
+            ),
           ),
         ],
       ),
@@ -479,12 +508,136 @@ class _DownloadGridState extends State<DownloadGrid> {
     );
   }
 
-  void _notPorted(String feature) {
+  void _openBatchUrls() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => BatchUrlDialog(parentContext: context),
+    );
+  }
+
+  void _openSiteGrabber() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => SiteGrabberDialog(parentContext: context),
+    );
+  }
+
+  void _openZipPreview() {
+    final ids = PlutoGridUtil.selectedRowIds;
+    if (ids.length != 1) {
+      _toast('Select exactly one ZIP download to preview.');
+      return;
+    }
+    final item = HiveUtil.instance.downloadItemsBox.get(ids.single);
+    if (item == null || !item.fileName.toLowerCase().endsWith('.zip')) {
+      _toast('The selected download is not a ZIP file.');
+      return;
+    }
+    showDialog(
+      context: context,
+      builder: (_) => ZipPreviewDialog(item: item),
+    );
+  }
+
+  Future<void> _toggleClipboardMonitor() async {
+    if (_clipboardMonitoring) {
+      _clipboardTimer?.cancel();
+      _clipboardTimer = null;
+      if (mounted) setState(() => _clipboardMonitoring = false);
+      _toast('Clipboard monitoring stopped.');
+      return;
+    }
+    try {
+      _lastClipboard = await FlutterClipboard.paste();
+    } catch (_) {
+      _lastClipboard = '';
+    }
+    if (!mounted) return;
+    setState(() => _clipboardMonitoring = true);
+    _clipboardTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _checkClipboard(),
+    );
+    _toast('Clipboard monitoring is on.');
+  }
+
+  Future<void> _checkClipboard() async {
+    if (_clipboardHandling || !_clipboardMonitoring || !mounted) return;
+    String value;
+    try {
+      value = await FlutterClipboard.paste();
+    } catch (_) {
+      return;
+    }
+    value = value.trim();
+    if (value.isEmpty || value == _lastClipboard) return;
+    _lastClipboard = value;
+    final urls = DownloadAdditionUiUtil.extractUrls(value)
+        .where((url) {
+          final uri = Uri.tryParse(url);
+          return uri != null && ['http', 'https'].contains(uri.scheme);
+        })
+        .toSet()
+        .toList();
+    if (urls.isEmpty) return;
+    _clipboardHandling = true;
+    try {
+      DownloadAdditionUiUtil.handleDownloadAddition(
+        context,
+        urls.join('\n'),
+      );
+    } finally {
+      Future<void>.delayed(
+        const Duration(seconds: 2),
+        () => _clipboardHandling = false,
+      );
+    }
+  }
+
+  Future<void> _moveSelected(int direction) async {
+    final queueId = queueProvider?.selectedQueueId;
+    final manager = PlutoGridUtil.plutoStateManager;
+    if (queueId == null || manager == null) {
+      _toast('Open a queue before changing download order.');
+      return;
+    }
+    if (manager.checkedRows.length != 1) {
+      _toast('Select one download to move.');
+      return;
+    }
+    final row = manager.checkedRows.single;
+    final oldIndex = manager.rows.indexOf(row);
+    final newIndex = oldIndex + direction;
+    if (oldIndex < 0 || newIndex < 0 || newIndex >= manager.rows.length) return;
+
+    manager.removeRows([row]);
+    manager.insertRows(newIndex, [row]);
+    manager.setRowChecked(row, true, checkedViaSelect: true);
+    manager.notifyListeners();
+
+    final queue = HiveUtil.instance.downloadQueueBox.get(queueId);
+    final ids = queue?.downloadItemsIds;
+    final downloadId = row.cells['id']?.value as int?;
+    if (queue == null || ids == null || downloadId == null) return;
+    final storedIndex = ids.indexOf(downloadId);
+    if (storedIndex < 0) return;
+    final storedTarget = storedIndex + direction;
+    if (storedTarget < 0 || storedTarget >= ids.length) return;
+    ids
+      ..removeAt(storedIndex)
+      ..insert(storedTarget, downloadId);
+    await queue.save();
+  }
+
+  void _toast(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('$feature is visible in the 1.4.1 layout; its 2.0 engine port is not connected yet.'),
+          content: Text(message),
           duration: const Duration(seconds: 2),
         ),
       );

@@ -22,20 +22,18 @@ class DownloadEngine {
   static final Map<String, DownloadItemModel> downloadItems = {};
   static final Map<String, ButtonAvailabilityMessage> buttonAvailabilities = {};
   static final Map<String, Completer> engineTerminationCompleter = {};
-  static DownloadSettings? _settings;
+  static final Map<String, DownloadSettings> _settingsByUid = {};
   static Isolate? fileInfoExtractorIsolate;
 
   static void pause(String uid) {
-    if (checkDownloadCompletion(downloadItems[uid]!)) {
-      return;
-    }
+    final item = downloadItems[uid];
+    if (item == null || checkDownloadCompletion(item)) return;
     _executeCommand(uid, DownloadCommand.pause);
   }
 
   static void resume(String uid) {
-    if (checkDownloadCompletion(downloadItems[uid]!)) {
-      return;
-    }
+    final item = downloadItems[uid];
+    if (item == null || checkDownloadCompletion(item)) return;
     if (buttonAvailabilities[uid] != null &&
         !buttonAvailabilities[uid]!.startButtonEnabled) {
       return;
@@ -45,22 +43,49 @@ class DownloadEngine {
 
   static Future<void> terminate(String uid) async {
     if (engineChannels[uid] == null) {
-      return Completer().complete();
+      _clearRuntimeState(uid);
+      return;
     }
+    final completer = Completer<void>();
+    engineTerminationCompleter[uid] = completer;
     _executeCommand(uid, DownloadCommand.terminate);
-    engineTerminationCompleter[uid] = Completer();
-    return engineTerminationCompleter[uid]!.future;
+    return completer.future.timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {
+        _clearRuntimeState(uid);
+      },
+    );
+  }
+
+  static void updateSettings(String uid, DownloadSettings settings) {
+    if (!engineChannels.containsKey(uid) || !downloadItems.containsKey(uid)) {
+      return;
+    }
+    _settingsByUid[uid] = settings;
+    _executeCommand(uid, DownloadCommand.updateSettings);
   }
 
   static void _executeCommand(String uid, DownloadCommand command) {
-    final downloadItem = downloadItems[uid]!;
+    final downloadItem = downloadItems[uid];
+    final settings = _settingsByUid[uid];
+    final channel = engineChannels[uid];
+    if (downloadItem == null || settings == null || channel == null) return;
     final message = DownloadIsolateMessage.createFromDownloadType(
       downloadType: downloadItem.downloadType,
       command: command,
       downloadItem: downloadItem,
-      settings: _settings!,
+      settings: settings,
     );
-    engineChannels[uid]!.sink.add(message);
+    channel.sink.add(message);
+  }
+
+  static void _clearRuntimeState(String uid) {
+    engineChannels.remove(uid);
+    engineIsolates.remove(uid)?.kill(priority: Isolate.immediate);
+    downloadItems.remove(uid);
+    buttonAvailabilities.remove(uid);
+    _settingsByUid.remove(uid);
+    engineTerminationCompleter.remove(uid);
   }
 
   static bool checkDownloadCompletion(DownloadItemModel downloadItem) {
@@ -69,7 +94,7 @@ class DownloadEngine {
         (file.existsSync() && file.lengthSync() == downloadItem.fileSize);
   }
 
-  static void start(
+  static Future<void> start(
     DownloadItemModel downloadItem,
     DownloadSettings settings,
     DownloadType type, {
@@ -80,11 +105,13 @@ class DownloadEngine {
     //   return;
     // }
     if (engineChannels[downloadItem.uid] != null) {
+      _settingsByUid[downloadItem.uid] = settings;
+      updateSettings(downloadItem.uid, settings);
       resume(downloadItem.uid);
       return;
     }
     final channel = await _spawnDownloadEngineIsolate(downloadItem, type);
-    _settings = settings;
+    _settingsByUid[downloadItem.uid] = settings;
     downloadItems[downloadItem.uid] = downloadItem;
     channel.stream.listen(
       (message) {
@@ -96,7 +123,11 @@ class DownloadEngine {
           onButtonAvailability(message);
         }
         if (message is TerminatedMessage) {
-          engineTerminationCompleter[downloadItem.uid]?.complete();
+          final completer = engineTerminationCompleter[downloadItem.uid];
+          if (completer != null && !completer.isCompleted) {
+            completer.complete();
+          }
+          _clearRuntimeState(downloadItem.uid);
         }
       },
     );

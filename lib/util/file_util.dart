@@ -130,6 +130,7 @@ class FileUtil {
       Directory(join(path, 'Videos')),
       Directory(join(path, 'Programs')),
       Directory(join(path, 'Documents')),
+      Directory(join(path, 'Images')),
       Directory(join(path, 'Other')),
     ];
     for (var dir in dirs) {
@@ -140,7 +141,9 @@ class FileUtil {
   /// Detects the [DLFileType] based on the file extension.
   static DLFileType detectFileType(String fileName) {
     final type = extension(fileName.toLowerCase()).replaceFirst(".", "");
-    if (SettingsCache.documentFormats.any((f) => type.contains(f))) {
+    if (FileExtensions.image.any((f) => type == f)) {
+      return DLFileType.images;
+    } else if (SettingsCache.documentFormats.any((f) => type.contains(f))) {
       return DLFileType.documents;
     } else if (SettingsCache.programFormats.any((f) => type.contains(f))) {
       return DLFileType.program;
@@ -166,6 +169,8 @@ class FileUtil {
       return 'Documents';
     } else if (fileType == DLFileType.compressed) {
       return 'Compressed';
+    } else if (fileType == DLFileType.images) {
+      return 'Images';
     } else {
       return 'Other';
     }
@@ -198,6 +203,8 @@ class FileUtil {
       return 'assets/icons/document.svg';
     } else if (fileType == DLFileType.program.name) {
       return 'assets/icons/program.svg';
+    } else if (fileType == DLFileType.images.name) {
+      return 'assets/icons/image.svg';
     } else {
       return 'assets/icons/file.svg';
     }
@@ -214,6 +221,8 @@ class FileUtil {
       return const Color(0xFF4CAF50);
     } else if (fileType == DLFileType.program.name) {
       return Colors.indigoAccent;
+    } else if (fileType == DLFileType.images.name) {
+      return Colors.amber;
     } else {
       return Colors.grey;
     }

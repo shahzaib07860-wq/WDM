@@ -260,7 +260,7 @@ class HttpDownloadEngine {
     _engineChannels[args.obj] = engineChannel;
     _startEngineTimers();
     engineChannel.listenToStream<HttpDownloadIsolateMessage>((data) async {
-      downloadSettings ??= data.settings;
+      downloadSettings = data.settings;
       _setConnectionSpawnIgnoreList(data);
       final downloadItem = data.downloadItem;
       final uid = downloadItem.uid;

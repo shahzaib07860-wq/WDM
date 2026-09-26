@@ -18,6 +18,7 @@ class DownloadSettings extends ConnectionSettings {
     required super.connectionRetryTimeoutMillis,
     required super.maxConnectionRetryCount,
     super.clientSettings,
+    super.maxBytesPerSecond = 0,
   });
 }
 
@@ -27,6 +28,7 @@ class ConnectionSettings {
   final int maxConnectionRetryCount;
   final bool loggerEnabled;
   final HttpClientSettings? clientSettings;
+  final int maxBytesPerSecond;
 
   ConnectionSettings({
     required this.baseTempDir,
@@ -34,5 +36,6 @@ class ConnectionSettings {
     required this.maxConnectionRetryCount,
     required this.loggerEnabled,
     this.clientSettings,
+    this.maxBytesPerSecond = 0,
   });
 }

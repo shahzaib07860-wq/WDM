@@ -124,6 +124,9 @@ class HttpDownloadConnection {
 
   int _retryCount = 0;
 
+  int _rateWindowStartMillis = DateTime.now().millisecondsSinceEpoch;
+  int _rateWindowBytes = 0;
+
   bool isWritingTempFile = false;
 
   ConnectionSettings settings;
@@ -391,13 +394,51 @@ class HttpDownloadConnection {
   }
 
   void _processChunk(List<int> chunk) async {
+    final shouldThrottle = settings.maxBytesPerSecond > 0;
+    if (shouldThrottle) downloadSub?.pause();
     try {
+      if (shouldThrottle) {
+        await _applyRateLimit(chunk.length);
+      }
       await doProcessChunk(chunk);
     } catch (e) {
       if (e is http.ClientException && paused) return;
       logger?.error("process chunk error! $e");
       await terminateConnection();
       clearBuffer();
+    } finally {
+      if (shouldThrottle && !paused && !_ignoreIncomingChunks) {
+        downloadSub?.resume();
+      }
+    }
+  }
+
+  Future<void> _applyRateLimit(int incomingBytes) async {
+    final limit = settings.maxBytesPerSecond;
+    if (limit <= 0 || incomingBytes <= 0) return;
+
+    var now = DateTime.now().millisecondsSinceEpoch;
+    var elapsed = now - _rateWindowStartMillis;
+    if (elapsed >= 1000 || elapsed < 0) {
+      _rateWindowStartMillis = now;
+      _rateWindowBytes = 0;
+      elapsed = 0;
+    }
+
+    final projectedBytes = _rateWindowBytes + incomingBytes;
+    final targetElapsed = (projectedBytes * 1000 / limit).ceil();
+    if (targetElapsed > elapsed) {
+      await Future<void>.delayed(
+        Duration(milliseconds: targetElapsed - elapsed),
+      );
+      now = DateTime.now().millisecondsSinceEpoch;
+      elapsed = now - _rateWindowStartMillis;
+    }
+    _rateWindowBytes = projectedBytes;
+
+    if (elapsed >= 1000) {
+      _rateWindowStartMillis = now;
+      _rateWindowBytes = 0;
     }
   }
 

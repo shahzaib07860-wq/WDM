@@ -15,7 +15,7 @@ import 'package:flutter/foundation.dart';
 import 'package:pluto_grid/pluto_grid.dart';
 import 'package:wdm/util/download_engine_util.dart';
 import 'package:wdm/util/donation_reminder.dart';
-import 'package:stream_channel/stream_channel.dart';
+import 'package:wdm/util/download_security_util.dart';
 import 'package:wdm/util/readability_util.dart';
 import 'package:wdm/setting/settings_cache.dart';
 
@@ -44,28 +44,79 @@ class DownloadRequestProvider with ChangeNotifier {
   int _previousUpdateTime = _nowMillis;
 
   Future<void> pauseDownload(int id) async {
-    final uid = await HiveUtil.instance.getDownloadItemUid(id);
-    DownloadEngine.pause(uid);
+    final item = HiveUtil.instance.downloadItemsBox.get(id);
+    if (item == null) return;
+    DownloadEngine.pause(item.uid);
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    _rebalanceSpeedLimits();
   }
 
-  void startDownload(int id) async {
+  Future<void> startDownload(int id) async {
     DownloadProgressMessage? downloadProgress = downloads[id];
     downloadProgress ??= await _addDownloadProgress(id);
     final downloadItem = downloadProgress.downloadItem;
-    StreamChannel? channel = DownloadEngine.engineChannels[id];
-    final totalConnections = downloadProgress.downloadItem.supportsPause
-        ? SettingsCache.connectionsNumber
-        : 1;
-    final settings = downloadSettingsFromCache()
-      ..totalConnections = totalConnections;
-    if (channel == null) {
-      DownloadEngine.start(
-        downloadItem,
-        settings,
-        downloadItem.downloadType,
-        onButtonAvailability: _handleButtonAvailabilityMessage,
-        onDownloadProgress: _handleDownloadProgressMessage,
-      );
+    final totalConnections = _connectionCountFor(downloadItem);
+    final activeCount = _activeDownloads().contains(downloadProgress)
+        ? _activeDownloads().length
+        : _activeDownloads().length + 1;
+    final settings = downloadSettingsFromCache(
+      maxBytesPerSecond: _perConnectionSpeedLimit(
+        activeCount,
+        totalConnections,
+      ),
+    )..totalConnections = totalConnections;
+
+    await DownloadEngine.start(
+      downloadItem,
+      settings,
+      downloadItem.downloadType,
+      onButtonAvailability: _handleButtonAvailabilityMessage,
+      onDownloadProgress: _handleDownloadProgressMessage,
+    );
+  }
+
+  int _connectionCountFor(DownloadItemModel item) {
+    if (item.m3u8Content != null && item.m3u8Content!.isNotEmpty) {
+      return SettingsCache.m3u8ConnectionNumber;
+    }
+    return item.supportsPause ? SettingsCache.connectionsNumber : 1;
+  }
+
+  List<DownloadProgressMessage> _activeDownloads() {
+    return downloads.values.where((progress) {
+      return {
+        DownloadStatus.connecting,
+        DownloadStatus.downloading,
+        DownloadStatus.validatingFiles,
+        DownloadStatus.assembling,
+      }.contains(progress.status);
+    }).toList();
+  }
+
+  int _perConnectionSpeedLimit(int activeDownloads, int connections) {
+    final totalBytesPerSecond = SettingsCache.globalSpeedLimitKbps * 1024;
+    if (totalBytesPerSecond <= 0) return 0;
+    final divisor = (activeDownloads < 1 ? 1 : activeDownloads) *
+        (connections < 1 ? 1 : connections);
+    return (totalBytesPerSecond ~/ divisor)
+        .clamp(1, totalBytesPerSecond)
+        .toInt();
+  }
+
+  void _rebalanceSpeedLimits() {
+    final active = _activeDownloads();
+    if (active.isEmpty) return;
+    for (final progress in active) {
+      final uid = progress.downloadItem.uid;
+      if (!DownloadEngine.engineChannels.containsKey(uid)) continue;
+      final connections = _connectionCountFor(progress.downloadItem);
+      final settings = downloadSettingsFromCache(
+        maxBytesPerSecond: _perConnectionSpeedLimit(
+          active.length,
+          connections,
+        ),
+      )..totalConnections = connections;
+      DownloadEngine.updateSettings(uid, settings);
     }
   }
 
@@ -87,18 +138,29 @@ class DownloadRequestProvider with ChangeNotifier {
 
   void _handleDownloadProgressMessage(DownloadProgressMessage progress) async {
     final id = progress.downloadItem.id!;
+    final previousStatus = downloads[id]?.status;
     final isNewCompletion =
         progress.status == DownloadStatus.assembleComplete &&
-            downloads[id]?.status != DownloadStatus.assembleComplete;
+            previousStatus != DownloadStatus.assembleComplete;
+    final isNewFailure =
+        (progress.status == DownloadStatus.failed ||
+            progress.status == DownloadStatus.networkError) &&
+        previousStatus != progress.status;
     downloads[id] = progress;
-    if (progress.status == DownloadStatus.downloading ||
-        progress.status == DownloadStatus.validatingFiles ||
-        progress.status == DownloadStatus.assembling) {
+    final anyActive = _activeDownloads().isNotEmpty;
+    if (anyActive) {
       TrayHandler.setTrayDownloading();
     } else {
       TrayHandler.setTrayInactive();
     }
-    _handleNotification(progress);
+    _handleNotification(
+      progress,
+      isNewCompletion: isNewCompletion,
+      isNewFailure: isNewFailure,
+    );
+    if (previousStatus != progress.status) {
+      _rebalanceSpeedLimits();
+    }
     final downloadItem = progress.downloadItem;
     final dl = HiveUtil.instance.downloadItemsBox.get(downloadItem.id);
     if (dl == null) return;
@@ -117,6 +179,9 @@ class DownloadRequestProvider with ChangeNotifier {
       if (dl.subtitles.isNotEmpty && await FFmpeg.isInstalled()) {
         await FFmpeg.addSoftSubsToDownloadedFile(dl);
         _setNewMkvFilePath(dl, progress);
+      }
+      if (isNewCompletion) {
+        await DownloadSecurityUtil.onDownloadCompleted(dl.filePath);
       }
     }
     notifyAllListeners(progress);
@@ -137,17 +202,18 @@ class DownloadRequestProvider with ChangeNotifier {
     notifyAllListeners(progress);
   }
 
-  void _handleNotification(DownloadProgressMessage progress) {
-    if (progress.assembleProgress == 1 &&
-        SettingsCache.notificationOnDownloadCompletion) {
+  void _handleNotification(
+    DownloadProgressMessage progress, {
+    required bool isNewCompletion,
+    required bool isNewFailure,
+  }) {
+    if (isNewCompletion && SettingsCache.notificationOnDownloadCompletion) {
       NotificationManager.showNotification(
         NotificationManager.downloadCompletionHeader,
         progress.downloadItem.fileName,
       );
     }
-    if ((progress.status == DownloadStatus.failed ||
-            progress.status == DownloadStatus.networkError) &&
-        SettingsCache.notificationOnDownloadFailure) {
+    if (isNewFailure && SettingsCache.notificationOnDownloadFailure) {
       NotificationManager.showNotification(
         NotificationManager.downloadFailureHeader,
         progress.downloadItem.fileName,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:wdm/provider/download_request_provider.dart';
+import 'package:wdm/provider/pluto_grid_util.dart';
 import 'package:wdm/provider/settings_provider.dart';
 import 'package:wdm/provider/theme_provider.dart';
 import 'package:wdm/setting/settings_cache.dart';
@@ -142,6 +143,16 @@ class LegacyMenuBar extends StatelessWidget {
           barrierDismissible: false,
           builder: (_) => const SettingsDialog(),
         );
+        break;
+      case 'Resume':
+        PlutoGridUtil.doOperationOnCheckedRows((id, _) {
+          downloadProvider.startDownload(id);
+        });
+        break;
+      case 'Pause':
+        PlutoGridUtil.doOperationOnCheckedRows((id, _) {
+          downloadProvider.pauseDownload(id);
+        });
         break;
       case 'Stop all':
         for (final id in downloadProvider.downloads.keys.toList()) {

@@ -15,7 +15,8 @@
   "host_permissions": [
     "http://*/*",
     "https://*/*",
-    "http://127.0.0.1:3021/*"
+    "http://127.0.0.1/*",
+    "http://localhost/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -48,8 +49,8 @@
       "run_at": "document_idle",
       "all_frames": true,
       "exclude_matches": [
-        "http://127.0.0.1:3021/*",
-        "http://localhost:3021/*"
+        "http://127.0.0.1/*",
+        "http://localhost/*"
       ]
     }
   ],

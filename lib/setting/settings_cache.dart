@@ -27,6 +27,8 @@ class SettingsCache {
   static late String applicationThemeId;
   static late bool notificationOnDownloadCompletion;
   static late bool notificationOnDownloadFailure;
+  static late bool playCompletionSound;
+  static late bool scanCompletedDownloads;
   static late bool launchOnStartUp;
   static late bool openDownloadProgressWindow;
   static late bool enableWindowToFront;
@@ -56,6 +58,7 @@ class SettingsCache {
   static late int m3u8ConnectionNumber;
   static late int connectionRetryCount;
   static late int connectionRetryTimeout;
+  static late int globalSpeedLimitKbps;
   static late ClientType httpClientType;
   static late bool proxyEnabled = false;
   static late String proxyAddress = "";
@@ -103,6 +106,14 @@ class SettingsCache {
     SettingOptions.notificationOnDownloadFailure.name: [
       SettingType.general.name,
       "true",
+    ],
+    SettingOptions.playCompletionSound.name: [
+      SettingType.general.name,
+      "true",
+    ],
+    SettingOptions.scanCompletedDownloads.name: [
+      SettingType.general.name,
+      "false",
     ],
     SettingOptions.launchOnStartUp.name: [
       SettingType.general.name,
@@ -175,6 +186,10 @@ class SettingsCache {
     SettingOptions.connectionRetryTimeout.name: [
       SettingType.connection.name,
       "10",
+    ],
+    SettingOptions.globalSpeedLimitKbps.name: [
+      SettingType.connection.name,
+      "0",
     ],
     SettingOptions.httpClientType.name: [
       SettingType.connection.name,
@@ -255,6 +270,12 @@ class SettingsCache {
         case SettingOptions.notificationOnDownloadFailure:
           notificationOnDownloadFailure = parseBool(value);
           break;
+        case SettingOptions.playCompletionSound:
+          playCompletionSound = parseBool(value);
+          break;
+        case SettingOptions.scanCompletedDownloads:
+          scanCompletedDownloads = parseBool(value);
+          break;
         case SettingOptions.launchOnStartUp:
           launchOnStartUp = parseBool(value);
           break;
@@ -311,6 +332,9 @@ class SettingsCache {
           break;
         case SettingOptions.connectionRetryTimeout:
           connectionRetryTimeout = int.parse(value);
+          break;
+        case SettingOptions.globalSpeedLimitKbps:
+          globalSpeedLimitKbps = int.tryParse(value) ?? 0;
           break;
         case SettingOptions.httpClientType:
           httpClientType = resolveClientType(value);
@@ -375,6 +399,12 @@ class SettingsCache {
         case SettingOptions.notificationOnDownloadFailure:
           setting.value =
               parseBoolStr(SettingsCache.notificationOnDownloadFailure);
+          break;
+        case SettingOptions.playCompletionSound:
+          setting.value = parseBoolStr(SettingsCache.playCompletionSound);
+          break;
+        case SettingOptions.scanCompletedDownloads:
+          setting.value = parseBoolStr(SettingsCache.scanCompletedDownloads);
           break;
         case SettingOptions.launchOnStartUp:
           setting.value = parseBoolStr(SettingsCache.launchOnStartUp);
@@ -454,6 +484,9 @@ class SettingsCache {
           break;
         case SettingOptions.connectionRetryTimeout:
           setting.value = SettingsCache.connectionRetryTimeout.toString();
+          break;
+        case SettingOptions.globalSpeedLimitKbps:
+          setting.value = SettingsCache.globalSpeedLimitKbps.toString();
           break;
         case SettingOptions.enableWindowToFront:
           setting.value = parseBoolStr(SettingsCache.enableWindowToFront);

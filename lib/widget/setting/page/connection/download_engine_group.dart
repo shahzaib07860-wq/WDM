@@ -4,6 +4,8 @@ import 'package:wdm/widget/setting/base/drop_down_setting.dart';
 import 'package:wdm/widget/setting/base/settings_group.dart';
 import 'package:brisk_download_engine/brisk_download_engine.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:wdm/widget/setting/base/text_field_setting.dart';
 
 class DownloadEngineGroup extends StatefulWidget {
   const DownloadEngineGroup({super.key});
@@ -14,6 +16,21 @@ class DownloadEngineGroup extends StatefulWidget {
 
 class _DownloadEngineGroupState extends State<DownloadEngineGroup> {
   late AppLocalizations loc;
+  late final TextEditingController speedLimitController;
+
+  @override
+  void initState() {
+    super.initState();
+    speedLimitController = TextEditingController(
+      text: SettingsCache.globalSpeedLimitKbps.toString(),
+    );
+  }
+
+  @override
+  void dispose() {
+    speedLimitController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +73,17 @@ class _DownloadEngineGroupState extends State<DownloadEngineGroup> {
           textWidth: size.width < 1683 ? size.width * 0.3 : 505,
           items: [1, 2, 4, 8, 16].map((e) => e.toString()).toList(),
           value: SettingsCache.m3u8ConnectionNumber.toString(),
+        ),
+        TextFieldSetting(
+          text: 'Global speed limit (KB/s, 0 = unlimited)',
+          textWidth: size.width < 1683 ? size.width * 0.3 : 505,
+          width: 140,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          txtController: speedLimitController,
+          onChanged: (value) {
+            SettingsCache.globalSpeedLimitKbps = int.tryParse(value) ?? 0;
+          },
         ),
       ],
     );

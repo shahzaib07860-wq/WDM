@@ -32,6 +32,18 @@ class _NotificationSettingsGroupState extends State<NotificationSettingsGroup> {
           onChanged: (val) =>
               setState(() => SettingsCache.notificationOnDownloadFailure = val),
         ),
+        SwitchSetting(
+          text: 'Play a sound when a download completes',
+          switchValue: SettingsCache.playCompletionSound,
+          onChanged: (val) =>
+              setState(() => SettingsCache.playCompletionSound = val),
+        ),
+        SwitchSetting(
+          text: 'Scan completed files with Windows Defender',
+          switchValue: SettingsCache.scanCompletedDownloads,
+          onChanged: (val) =>
+              setState(() => SettingsCache.scanCompletedDownloads = val),
+        ),
       ],
     );
   }

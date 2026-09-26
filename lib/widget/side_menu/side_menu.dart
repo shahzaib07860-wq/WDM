@@ -51,7 +51,7 @@ class _SideMenuState extends State<SideMenu> {
           _item('Video', Icons.movie_outlined, light,
               () => _category(queueProvider, DLFileType.video)),
           _item('Images', Icons.image_outlined, light,
-              () => _category(queueProvider, DLFileType.other)),
+              () => _category(queueProvider, DLFileType.images)),
           _item('Other', Icons.insert_drive_file_outlined, light,
               () => _category(queueProvider, DLFileType.other)),
           _heading('Queues', light),
@@ -217,6 +217,7 @@ class _SideMenuState extends State<SideMenu> {
       DLFileType.music: 'Music',
       DLFileType.program: 'Programs',
       DLFileType.video: 'Video',
+      DLFileType.images: 'Images',
       DLFileType.other: 'Other',
     };
     _activate(labels[type] ?? 'Other', queueProvider);

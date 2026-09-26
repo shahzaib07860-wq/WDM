@@ -4,6 +4,7 @@ enum DLFileType {
   video,
   program,
   documents,
+  images,
   other,
   m3u8,
 }

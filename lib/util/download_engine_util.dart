@@ -2,7 +2,7 @@ import 'package:wdm/model/download_item.dart';
 import 'package:wdm/setting/settings_cache.dart';
 import 'package:brisk_download_engine/brisk_download_engine.dart';
 
-DownloadSettings downloadSettingsFromCache() {
+DownloadSettings downloadSettingsFromCache({int? maxBytesPerSecond}) {
   return DownloadSettings(
     baseTempDir: SettingsCache.temporaryDir,
     baseSaveDir: SettingsCache.saveDir,
