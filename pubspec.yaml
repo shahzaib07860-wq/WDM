@@ -1,5 +1,6 @@
 name: wdm
 description: Ultra-fast, modern download manager for desktop
+publish_to: none
 
 version: 2.0.1
 
