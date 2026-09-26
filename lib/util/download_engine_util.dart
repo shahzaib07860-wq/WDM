@@ -15,6 +15,7 @@ DownloadSettings downloadSettingsFromCache({int? maxBytesPerSecond}) {
       proxySetting: SettingsCache.proxySetting,
       clientType: SettingsCache.httpClientType,
     ),
+    maxBytesPerSecond: maxBytesPerSecond ?? 0,
   );
 }
 
