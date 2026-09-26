@@ -36,9 +36,9 @@ try {
     Invoke-Checked 'flutter' @('doctor', '-v')
     Invoke-Checked 'flutter' @('pub', 'get')
     Invoke-Checked 'flutter' @('analyze', '--no-fatal-infos', '--no-fatal-warnings')
-    Invoke-Checked 'flutter' @('test', 'test/media_regression_test.dart', 'test/queue_scheduler_test.dart')
+    Invoke-Checked 'flutter' @('test', 'test/legacy_tools_test.dart', 'test/runtime_settings_test.dart')
     Invoke-Checked 'dart' @('run', 'tests/queue-policy-test.dart')
-    Invoke-Checked 'dart' @('run', 'tests/scoped-media-test.dart')
+    Invoke-Checked 'node' @('test-extension.cjs')
     Invoke-Checked 'flutter' @('build', 'windows', '--release')
     & (Join-Path $PSScriptRoot 'build-windows-installer.ps1') -InnoCompiler $compiler
     $installer = Join-Path $root 'dist\WDM_2.0_Alpha_Setup.exe'
