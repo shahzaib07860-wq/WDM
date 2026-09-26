@@ -39,7 +39,7 @@ class SiteGrabber {
       try {
         final uri = base.resolve(raw);
         if (!['http', 'https'].contains(uri.scheme)) continue;
-        links.add(uri.replace(fragment: ''));
+        links.add(uri.removeFragment());
       } catch (_) {}
     }
     return links;
@@ -74,7 +74,7 @@ class SiteGrabber {
     }
 
     final client = await HttpClientBuilder.buildClient(SettingsCache.clientSettings);
-    final pending = <Uri>[start.replace(fragment: '')];
+    final pending = <Uri>[start.removeFragment()];
     final seenPages = <String>{};
     final downloads = <String>{};
 
