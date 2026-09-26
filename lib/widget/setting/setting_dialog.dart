@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:wdm/l10n/app_localizations.dart';
 import 'package:wdm/provider/locale_provider.dart';
+import 'package:wdm/provider/download_request_provider.dart';
 import 'package:wdm/provider/settings_provider.dart';
 import 'package:wdm/provider/theme_provider.dart';
 import 'package:wdm/theme/application_theme_holder.dart';
@@ -198,7 +199,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
     Navigator.of(context).pop();
   }
 
-  void _onApplyPressed() {
+  Future<void> _onApplyPressed() async {
     final tempPath = settingsProvider?.tempPath;
     final savePath = settingsProvider?.savePath;
     if (validatePathSettings(tempPath)) {
@@ -232,12 +233,16 @@ class _SettingsDialogState extends State<SettingsDialog> {
         ),
       );
     }
-    SettingsCache.saveCachedSettingsToDB();
+    await SettingsCache.saveCachedSettingsToDB();
     ApplicationThemeHolder.setActiveTheme();
     Provider.of<LocaleProvider>(context, listen: false).setCurrentLocale();
     themeProvider?.updateActiveTheme();
     HotKeyUtil.registerDownloadAdditionHotKey(context);
-    Navigator.of(context).pop();
+    Provider.of<DownloadRequestProvider>(
+      context,
+      listen: false,
+    ).refreshRuntimeSettings();
+    if (mounted) Navigator.of(context).pop();
   }
 
   bool validatePathSettings(String? path) {
