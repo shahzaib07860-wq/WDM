@@ -13,7 +13,7 @@ analyzer:
   exclude:
     - build/**
     - brisk_auto_updater/**
-    - brisk_download_engine/example/**
+    - brisk_download_engine/**
     - hotkey_manager/**
     - pluto_grid/**
     - tray_manager/**
