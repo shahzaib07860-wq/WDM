@@ -35,13 +35,17 @@ jobs:
         shell: pwsh
         run: flutter pub get
 
+      - name: Analyze Flutter source
+        shell: pwsh
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
       - name: Test queue scheduler policy
         shell: pwsh
         run: dart tests/queue-policy-test.dart
 
-      - name: Test WDM tools
+      - name: Test WDM tools and runtime settings
         shell: pwsh
-        run: flutter test test/legacy_tools_test.dart
+        run: flutter test test/legacy_tools_test.dart test/runtime_settings_test.dart
 
       - name: Test browser extension
         shell: pwsh
